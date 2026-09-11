@@ -72,7 +72,7 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
 
         <Field label="Valor">
           <input
-            type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00"
+            type="number" min="0.01" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00"
             className="w-full rounded-md px-3 py-2 text-sm font-mono outline-none bg-surface-elevated border border-border text-text"
           />
         </Field>

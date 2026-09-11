@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
+import { useTransactions } from "@/hooks/useTransactions";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+
+const CATEGORIA_PROTEGIDA = "Metas";
 
 export default function CategoriasPage() {
   const { categories, loading, addCategory, removeCategory } = useCategories();
+  const { transactions } = useTransactions();
   const [novo, setNovo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+
+  const usoPorCategoria = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions.forEach((t) => { map[t.categoria] = (map[t.categoria] ?? 0) + 1; });
+    return map;
+  }, [transactions]);
 
   const handleAdd = async () => {
     const nome = novo.trim();
@@ -47,15 +58,25 @@ export default function CategoriasPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-          {categories.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 rounded-md px-3 py-2.5 bg-surface border border-border">
-              <CategoryIcon categoria={c.nome} className="h-4 w-4" />
-              <span className="text-sm flex-1 text-text">{c.nome}</span>
-              <button onClick={() => removeCategory(c.id)} aria-label={`Excluir ${c.nome}`}>
-                <Trash2 className="h-3.5 w-3.5 text-error" />
-              </button>
-            </div>
-          ))}
+          {categories.map((c) => {
+            const usos = usoPorCategoria[c.nome] ?? 0;
+            const protegida = c.nome === CATEGORIA_PROTEGIDA;
+            return (
+              <div key={c.id} className="flex items-center gap-2 rounded-md px-3 py-2.5 bg-surface border border-border">
+                <CategoryIcon categoria={c.nome} className="h-4 w-4" />
+                <span className="text-sm flex-1 text-text">
+                  {c.nome}
+                  {usos > 0 && <span className="text-text-faint"> · {usos} mov.</span>}
+                </span>
+                <ConfirmDeleteButton
+                  label={`Excluir ${c.nome}`}
+                  disabled={protegida}
+                  disabledReason={protegida ? "Usada pelo sistema de metas — não pode ser excluída" : undefined}
+                  onConfirm={() => removeCategory(c.id)}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

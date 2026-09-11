@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Trash2, Check, X, FileText } from "lucide-react";
+import { Pencil, FileText } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { fmt, fmtDate } from "@/lib/format";
 import type { Transaction } from "@/types";
 
@@ -14,12 +14,10 @@ interface TransactionRowProps {
 
 /**
  * Linha de movimentação com ações sempre visíveis (não depende de hover,
- * que não existe em touch) e confirmação inline antes de excluir.
- * Clicar na linha abre a edição — os detalhes completos (observação,
- * forma de pagamento) já aparecem lá.
+ * que não existe em touch). Clicar na linha abre a edição — os detalhes
+ * completos (observação, forma de pagamento) já aparecem lá.
  */
 export function TransactionRow({ mov, onEdit, onDelete }: TransactionRowProps) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const isEntrada = mov.tipo === "entrada";
   const hasActions = Boolean(onEdit || onDelete);
 
@@ -57,44 +55,17 @@ export function TransactionRow({ mov, onEdit, onDelete }: TransactionRowProps) {
 
       {hasActions && (
         <div className="flex items-center gap-1 shrink-0">
-          {confirmingDelete ? (
-            <>
-              <button
-                onClick={() => { onDelete?.(mov.id); setConfirmingDelete(false); }}
-                className="h-full w-8 rounded-md flex items-center justify-center border border-error/30 bg-error/10 text-error"
-                aria-label="Confirmar exclusão"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setConfirmingDelete(false)}
-                className="h-full w-8 rounded-md flex items-center justify-center border border-border text-text-muted"
-                aria-label="Cancelar"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </>
-          ) : (
-            <>
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(mov)}
-                  className="h-full w-8 rounded-md flex items-center justify-center border border-border text-text-muted"
-                  aria-label="Editar"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => setConfirmingDelete(true)}
-                  className="h-full w-8 rounded-md flex items-center justify-center border border-border text-error"
-                  aria-label="Excluir"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(mov)}
+              className="h-full w-8 rounded-md flex items-center justify-center border border-border text-text-muted"
+              aria-label="Editar"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <ConfirmDeleteButton label="Excluir movimentação" onConfirm={() => onDelete(mov.id)} sizeClassName="h-full w-8" />
           )}
         </div>
       )}

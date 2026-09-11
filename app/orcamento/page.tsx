@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { useBudget } from "@/hooks/useBudget";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { Button } from "@/components/ui/Button";
 import { fmt, currentMonthRef } from "@/lib/format";
 import type { BudgetLimit } from "@/types";
@@ -102,6 +103,8 @@ function BudgetCard({
         <div className="flex items-center gap-1.5 mb-2">
           <input
             type="number"
+            min="0.01"
+            step="0.01"
             autoFocus
             value={limite}
             onChange={(e) => setLimiteValue(e.target.value)}
@@ -127,9 +130,7 @@ function BudgetCard({
           <button onClick={() => setEditing(true)} className="h-6 w-6 rounded flex items-center justify-center text-text-faint" aria-label="Editar limite">
             <Pencil className="h-3 w-3" />
           </button>
-          <button onClick={() => onDelete(budget.id)} className="h-6 w-6 rounded flex items-center justify-center text-error" aria-label="Remover orçamento">
-            <Trash2 className="h-3 w-3" />
-          </button>
+          <ConfirmDeleteButton label="Remover orçamento" onConfirm={() => onDelete(budget.id)} />
         </div>
       )}
     </div>
@@ -169,7 +170,7 @@ function NewBudgetCard({
         {categorias.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
       </select>
       <input
-        placeholder="Limite mensal" type="number" value={limite} onChange={(e) => setLimite(e.target.value)}
+        placeholder="Limite mensal" type="number" min="0.01" step="0.01" value={limite} onChange={(e) => setLimite(e.target.value)}
         className="rounded-md px-3 py-2 text-sm font-mono outline-none bg-surface-elevated border border-border text-text"
       />
       <Button variant="primary" disabled={!limite || saving} onClick={criar}>

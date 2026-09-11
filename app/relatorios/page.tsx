@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { SaldoEvolutionChart, GastosPorCategoriaChart } from "@/features/reports/ReportCharts";
+import { ExportButton } from "@/features/export/ExportButton";
 import { fmt } from "@/lib/format";
 
 const CATEGORIA_METAS = "Metas";
@@ -37,7 +38,10 @@ export default function RelatoriosPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6">
-      <span className="font-display text-lg font-semibold text-text">Relatórios</span>
+      <div className="flex items-center justify-between">
+        <span className="font-display text-lg font-semibold text-text">Relatórios</span>
+        <ExportButton />
+      </div>
 
       {loading ? (
         <div className="grid sm:grid-cols-2 gap-4 animate-pulse">

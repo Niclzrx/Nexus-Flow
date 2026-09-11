@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Minus } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { useGoals } from "@/hooks/useGoals";
 import { useTransactions } from "@/hooks/useTransactions";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { fmt, todayISO } from "@/lib/format";
 import type { Goal, NewTransaction } from "@/types";
 
@@ -45,7 +46,7 @@ export default function MetasPage() {
               className="rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text"
             />
             <input
-              placeholder="Valor alvo" type="number" value={valorMeta} onChange={(e) => setValorMeta(e.target.value)}
+              placeholder="Valor alvo" type="number" min="0.01" step="0.01" value={valorMeta} onChange={(e) => setValorMeta(e.target.value)}
               className="rounded-md px-3 py-2 text-sm font-mono outline-none bg-surface-elevated border border-border text-text"
             />
             <Button
@@ -147,6 +148,8 @@ function GoalEditableCard({
           </div>
           <input
             type="number"
+            min="0.01"
+            step="0.01"
             autoFocus
             value={valor}
             onChange={(e) => setValor(e.target.value)}
@@ -176,13 +179,7 @@ function GoalEditableCard({
           >
             Adicionar valor
           </button>
-          <button
-            onClick={() => onDeleteGoal(goal.id)}
-            className="h-7 w-7 rounded-md flex items-center justify-center shrink-0 border border-border text-error"
-            aria-label="Excluir meta"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <ConfirmDeleteButton label="Excluir meta" onConfirm={() => onDeleteGoal(goal.id)} />
         </div>
       )}
     </div>

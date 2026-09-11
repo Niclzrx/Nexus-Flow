@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TransactionRow } from "@/features/transactions/TransactionRow";
 import { TransactionForm } from "@/features/transactions/TransactionForm";
+import { ExportButton } from "@/features/export/ExportButton";
 import { fmtDateLong } from "@/lib/format";
 import type { Transaction, TransactionType } from "@/types";
 
@@ -40,9 +41,12 @@ export default function MovimentacoesPage() {
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
       <div className="flex items-center justify-between mb-5">
         <span className="font-display text-lg font-semibold text-text">Movimentações</span>
-        <Button variant="primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <Plus className="h-3.5 w-3.5" /> Nova
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportButton transactionsOverride={filtered} />
+          <Button variant="primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
+            <Plus className="h-3.5 w-3.5" /> Nova
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 mb-4">

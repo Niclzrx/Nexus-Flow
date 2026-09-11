@@ -9,6 +9,11 @@ import { Navbar } from "./Navbar";
 import { MobileNav } from "./MobileNav";
 import { TransactionForm } from "@/features/transactions/TransactionForm";
 
+const currentPeriodLabel = () => {
+  const label = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+};
+
 function Shell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -27,7 +32,7 @@ function Shell({ children }: { children: ReactNode }) {
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
           onNovaMovimentacao={() => setModalOpen(true)}
-          period="Setembro 2026"
+          period={currentPeriodLabel()}
         />
         <div className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</div>
       </div>
