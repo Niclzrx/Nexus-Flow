@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
@@ -7,17 +7,19 @@ import { exportFinanceData } from "@/lib/export";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useGoals } from "@/hooks/useGoals";
 import { useBudget } from "@/hooks/useBudget";
+import { useFinance } from "@/lib/providers/FinanceProvider";
 import type { Transaction } from "@/types";
 
 /**
- * Botão de exportar para Excel. Recebe opcionalmente uma lista de
- * movimentações já filtrada (ex.: a busca/filtro ativo em Movimentações) —
+ * Botao de exportar para Excel. Recebe opcionalmente uma lista de
+ * movimentacoes ja filtrada (ex.: a busca/filtro ativo em Movimentacoes) —
  * sem isso, exporta tudo.
  */
 export function ExportButton({ transactionsOverride }: { transactionsOverride?: Transaction[] }) {
   const { transactions } = useTransactions();
   const { goals } = useGoals();
   const { budgetLimits } = useBudget();
+  const { profile } = useFinance();
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -27,6 +29,7 @@ export function ExportButton({ transactionsOverride }: { transactionsOverride?: 
         transactions: transactionsOverride ?? transactions,
         goals,
         budgetLimits,
+        profile,
       });
     } finally {
       setExporting(false);

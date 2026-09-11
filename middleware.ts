@@ -1,11 +1,16 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+﻿import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 /**
- * Só entra em ação de verdade quando NEXT_PUBLIC_DATA_SOURCE=supabase e as
- * credenciais estiverem preenchidas — sem isso, deixa a request passar
- * direto. Quando o backend for ligado, este middleware renova o token de
- * sessão do Supabase a cada navegação.
+ * Middleware de autenticacao e renovacao de sessao.
+ *
+ * Quando NEXT_PUBLIC_DATA_SOURCE=supabase:
+ * - Renova o token de sessao a cada navegacao
+ * - Redireciona usuarios deslogados para /login
+ * - Redireciona usuarios logados de /login e /cadastro para /
+ *
+ * Quando NEXT_PUBLIC_DATA_SOURCE=mock (ou nao definido):
+ * - Deixa a request passar direto (sem autenticacao)
  */
 export async function middleware(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_DATA_SOURCE !== "supabase") {
@@ -31,7 +36,28 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // Rotas publicas que nao precisam de autenticacao
+  const publicRoutes = ["/login", "/cadastro", "/compartilhar"];
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+
+  // Se nao esta autenticado e nao esta em rota publica, redireciona para login
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Se esta autenticado e tenta acessar login/cadastro, redireciona para home
+  if (user && (pathname === "/login" || pathname === "/cadastro")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
   return response;
 }
 

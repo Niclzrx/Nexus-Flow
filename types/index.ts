@@ -1,18 +1,18 @@
-/**
- * Tipos de domínio do Nexus Flow.
+﻿/**
+ * Tipos de dominio do Nexus Flow.
  *
- * Desenhados para corresponder diretamente às tabelas do Supabase
+ * Desenhados para corresponder diretamente as tabelas do Supabase
  * (ver supabase/migrations/0001_init.sql). Usar snake_case nos campos
- * que vêm do banco evita uma camada extra de mapeamento entre o
- * repositório Supabase e o resto do app.
+ * que vem do banco evita uma camada extra de mapeamento entre o
+ * repositorio Supabase e o resto do app.
  */
 
 export type TransactionType = "entrada" | "gasto";
 
 export type PaymentMethod =
   | "Pix"
-  | "Cartão de débito"
-  | "Cartão de crédito"
+  | "Cart\u00e3o de d\u00e9bito"
+  | "Cart\u00e3o de cr\u00e9dito"
   | "Dinheiro"
   | "Boleto";
 
@@ -58,9 +58,20 @@ export interface Profile {
   id: string;
   nome: string | null;
   tema: "dark" | "light";
+  saldo_inicial: number;
 }
 
-/** Payloads de criação — sem campos gerados pelo banco (id, user_id, created_at). */
+export interface Share {
+  id: string;
+  user_id: string;
+  titulo: string;
+  show_resumo: boolean;
+  show_grafico: boolean;
+  show_gastos_categoria: boolean;
+  created_at: string;
+}
+
+/** Payloads de criacao — sem campos gerados pelo banco (id, user_id, created_at). */
 export type NewTransaction = Omit<Transaction, "id" | "user_id" | "created_at">;
 export type UpdateTransaction = Partial<NewTransaction> & { id: string };
 
@@ -70,3 +81,5 @@ export type NewGoal = Omit<Goal, "id" | "user_id" | "created_at" | "valor_guarda
 export type UpdateGoal = Partial<Omit<Goal, "id" | "user_id" | "created_at">> & { id: string };
 
 export type NewBudgetLimit = Omit<BudgetLimit, "id" | "user_id">;
+
+export type NewShare = Omit<Share, "id" | "user_id" | "created_at">;

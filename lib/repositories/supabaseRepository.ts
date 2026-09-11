@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+﻿import { createClient } from "@/lib/supabase/client";
 import type {
   BudgetLimit,
   Category,
@@ -6,6 +6,9 @@ import type {
   NewBudgetLimit,
   NewGoal,
   NewTransaction,
+  NewShare,
+  Profile,
+  Share,
   Transaction,
   UpdateGoal,
   UpdateTransaction,
@@ -13,15 +16,34 @@ import type {
 import type { FinanceRepository } from "./types";
 
 /**
- * Implementação real, com Supabase. Cumpre exatamente o mesmo contrato de
- * `MockRepository` — quando NEXT_PUBLIC_DATA_SOURCE=supabase, esta classe
- * passa a ser usada em todo o app sem nenhuma mudança de componente/hook.
+ * Implementacao real, com Supabase. Cumpre exatamente o mesmo contrato de
+ * MockRepository — quando NEXT_PUBLIC_DATA_SOURCE=supabase, esta classe
+ * passa a ser usada em todo o app sem nenhuma mudanca de componente/hook.
  *
- * `user_id` nunca é passado manualmente: as políticas de RLS usam
- * auth.uid(), e o Supabase client já injeta a sessão do usuário logado.
+ * user_id nunca e passado manualmente: as politicas de RLS usam
+ * auth.uid(), e o Supabase client ja injeta a sessao do usuario logado.
  */
 export class SupabaseRepository implements FinanceRepository {
   private supabase = createClient();
+
+  async getProfile(): Promise<Profile> {
+    const { data, error } = await this.supabase
+      .from("profiles")
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateProfile(input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>): Promise<Profile> {
+    const { data, error } = await this.supabase
+      .from("profiles")
+      .update(input)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
 
   async listTransactions(): Promise<Transaction[]> {
     const { data, error } = await this.supabase
@@ -141,5 +163,39 @@ export class SupabaseRepository implements FinanceRepository {
   async deleteCategory(id: string): Promise<void> {
     const { error } = await this.supabase.from("categories").delete().eq("id", id);
     if (error) throw error;
+  }
+
+  async addShare(input: NewShare): Promise<Share> {
+    const { data, error } = await this.supabase
+      .from("shares")
+      .insert(input)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async listShares(): Promise<Share[]> {
+    const { data, error } = await this.supabase
+      .from("shares")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteShare(id: string): Promise<void> {
+    const { error } = await this.supabase.from("shares").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  async getShare(id: string): Promise<Share | null> {
+    const { data, error } = await this.supabase
+      .from("shares")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) return null;
+    return data;
   }
 }

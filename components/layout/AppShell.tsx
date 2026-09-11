@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, type ReactNode } from "react";
 import { FinanceProvider } from "@/lib/providers/FinanceProvider";
@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { MobileNav } from "./MobileNav";
 import { TransactionForm } from "@/features/transactions/TransactionForm";
+import { ShareForm } from "@/features/share/ShareForm";
 
 const currentPeriodLabel = () => {
   const label = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -17,10 +18,13 @@ const currentPeriodLabel = () => {
 function Shell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const { transactions, addTransaction } = useFinance();
+  const { profile, transactions, addTransaction } = useFinance();
 
-  const saldoTotal = transactions.reduce((acc, t) => acc + (t.tipo === "entrada" ? t.valor : -t.valor), 0);
+  const saldoInicial = profile?.saldo_inicial ?? 0;
+  const saldoMovimentacoes = transactions.reduce((acc, t) => acc + (t.tipo === "entrada" ? t.valor : -t.valor), 0);
+  const saldoTotal = saldoInicial + saldoMovimentacoes;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -32,6 +36,7 @@ function Shell({ children }: { children: ReactNode }) {
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
           onNovaMovimentacao={() => setModalOpen(true)}
+          onCompartilhar={() => setShareOpen(true)}
           period={currentPeriodLabel()}
         />
         <div className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</div>
@@ -41,6 +46,10 @@ function Shell({ children }: { children: ReactNode }) {
 
       {modalOpen && (
         <TransactionForm onClose={() => setModalOpen(false)} onSubmit={addTransaction} />
+      )}
+
+      {shareOpen && (
+        <ShareForm onClose={() => setShareOpen(false)} />
       )}
     </div>
   );

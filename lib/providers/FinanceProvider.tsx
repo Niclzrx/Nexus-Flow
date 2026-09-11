@@ -1,20 +1,24 @@
-"use client";
+﻿"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { repository } from "@/lib/repositories";
 import { currentMonthRef } from "@/lib/format";
 import type {
   BudgetLimit, Category, Goal, NewBudgetLimit, NewGoal, NewTransaction,
-  Transaction, UpdateGoal, UpdateTransaction,
+  NewShare, Profile, Share, Transaction, UpdateGoal, UpdateTransaction,
 } from "@/types";
 
 interface FinanceContextValue {
+  profile: Profile | null;
   transactions: Transaction[];
   goals: Goal[];
   budgetLimits: BudgetLimit[];
   categories: Category[];
+  shares: Share[];
   loading: boolean;
   error: Error | null;
+
+  updateProfile: (input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>) => Promise<Profile>;
 
   addTransaction: (input: NewTransaction) => Promise<Transaction>;
   editTransaction: (input: UpdateTransaction) => Promise<Transaction>;
@@ -29,15 +33,20 @@ interface FinanceContextValue {
 
   addCategory: (nome: string) => Promise<Category>;
   removeCategory: (id: string) => Promise<void>;
+
+  addShare: (input: NewShare) => Promise<Share>;
+  removeShare: (id: string) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [budgetLimits, setBudgetLimits] = useState<BudgetLimit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [shares, setShares] = useState<Share[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -45,17 +54,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const [t, g, b, c] = await Promise.all([
+        const [p, t, g, b, c, s] = await Promise.all([
+          repository.getProfile(),
           repository.listTransactions(),
           repository.listGoals(),
           repository.listBudgetLimits(currentMonthRef()),
           repository.listCategories(),
+          repository.listShares(),
         ]);
         if (cancelled) return;
+        setProfile(p);
         setTransactions(t);
         setGoals(g);
         setBudgetLimits(b);
         setCategories(c);
+        setShares(s);
       } catch (e) {
         if (!cancelled) setError(e as Error);
       } finally {
@@ -65,6 +78,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const updateProfile = useCallback(async (input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>) => {
+    const updated = await repository.updateProfile(input);
+    setProfile(updated);
+    return updated;
   }, []);
 
   const addTransaction = useCallback(async (input: NewTransaction) => {
@@ -126,17 +145,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setCategories((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
+  const addShare = useCallback(async (input: NewShare) => {
+    const created = await repository.addShare(input);
+    setShares((prev) => [created, ...prev]);
+    return created;
+  }, []);
+
+  const removeShare = useCallback(async (id: string) => {
+    await repository.deleteShare(id);
+    setShares((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
   const value = useMemo<FinanceContextValue>(
     () => ({
-      transactions, goals, budgetLimits, categories, loading, error,
+      profile, transactions, goals, budgetLimits, categories, shares, loading, error,
+      updateProfile,
       addTransaction, editTransaction, removeTransaction,
       addGoal, editGoal, removeGoal,
       setBudgetLimit, removeBudgetLimit,
       addCategory, removeCategory,
+      addShare, removeShare,
     }),
-    [transactions, goals, budgetLimits, categories, loading, error,
+    [profile, transactions, goals, budgetLimits, categories, shares, loading, error,
+      updateProfile,
       addTransaction, editTransaction, removeTransaction,
-      addGoal, editGoal, removeGoal, setBudgetLimit, removeBudgetLimit, addCategory, removeCategory]
+      addGoal, editGoal, removeGoal, setBudgetLimit, removeBudgetLimit, addCategory, removeCategory,
+      addShare, removeShare]
   );
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;

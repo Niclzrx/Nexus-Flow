@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useGoals } from "@/hooks/useGoals";
+import { useFinance } from "@/lib/providers/FinanceProvider";
 import { StatCard } from "@/features/dashboard/StatCard";
 import { FlowView } from "@/features/dashboard/FlowView";
 import { GoalCard } from "@/features/goals/GoalCard";
@@ -19,12 +20,13 @@ const CATEGORIA_METAS = "Metas";
 export default function OverviewPage() {
   const { transactions, loading, editTransaction, removeTransaction } = useTransactions();
   const { goals } = useGoals();
+  const { profile } = useFinance();
   const [editing, setEditing] = useState<Transaction | null>(null);
 
-  // "Metas" é uma categoria especial: guardar/resgatar dinheiro de uma meta
-  // gera uma movimentação real (ver app/metas/page.tsx), mas ela é uma
-  // transferência interna, não gasto nem renda de verdade — por isso fica
-  // separada nos cartões e no Flow View, embora conte pro saldo igual.
+  // "Metas" e uma categoria especial: guardar/resgatar dinheiro de uma meta
+  // gera uma movimentacao real (ver app/metas/page.tsx), mas ela e uma
+  // transferencia interna, nao gasto nem renda de verdade — por isso fica
+  // separada nos cartoes e no Flow View, embora conte pro saldo igual.
   const totalEntradas = useMemo(() => transactions.filter((t) => t.tipo === "entrada").reduce((a, t) => a + t.valor, 0), [transactions]);
   const totalGastos = useMemo(() => transactions.filter((t) => t.tipo === "gasto").reduce((a, t) => a + t.valor, 0), [transactions]);
   const metasContribuicoes = useMemo(() => transactions.filter((t) => t.tipo === "gasto" && t.categoria === CATEGORIA_METAS).reduce((a, t) => a + t.valor, 0), [transactions]);
@@ -32,7 +34,8 @@ export default function OverviewPage() {
 
   const entradasReais = totalEntradas - metasResgates;
   const gastosReais = totalGastos - metasContribuicoes;
-  const saldo = totalEntradas - totalGastos; // disponível de verdade, já reflete o que foi guardado
+  const saldoInicial = profile?.saldo_inicial ?? 0;
+  const saldo = saldoInicial + totalEntradas - totalGastos; // disponivel de verdade, ja reflete o que foi guardado
 
   const hoje = todayISO();
   const movsHoje = transactions.filter((t) => t.data === hoje);
@@ -47,7 +50,7 @@ export default function OverviewPage() {
         <div className="grid grid-cols-3 gap-3 mt-5">
           <StatCard label="Entradas" value={entradasReais} tone="success" icon={ArrowDownLeft} />
           <StatCard label="Gastos" value={gastosReais} tone="error" icon={ArrowUpRight} />
-          <StatCard label="Disponível" value={saldo} icon={Wallet} />
+          <StatCard label="Disponivel" value={saldo} icon={Wallet} />
         </div>
       </div>
 
@@ -70,7 +73,7 @@ export default function OverviewPage() {
         </div>
         <div className="space-y-2">
           {movsHoje.length === 0 ? (
-            <EmptyState text="Nenhuma movimentação hoje ainda." />
+            <EmptyState text="Nenhuma movimentacao hoje ainda." />
           ) : (
             movsHoje.map((m) => (
               <TransactionRow key={m.id} mov={m} onEdit={setEditing} onDelete={removeTransaction} />

@@ -1,30 +1,37 @@
-import type {
+﻿import type {
   BudgetLimit,
   Category,
   Goal,
   NewBudgetLimit,
   NewGoal,
   NewTransaction,
+  NewShare,
+  Profile,
+  Share,
   Transaction,
   UpdateGoal,
   UpdateTransaction,
 } from "@/types";
 
 /**
- * FinanceRepository é o único ponto de contato entre a UI (hooks/ e
+ * FinanceRepository e o unico ponto de contato entre a UI (hooks/ e
  * features/) e a fonte de dados real.
  *
- * Hoje só existe `MockRepository`, que vive em memória. Quando o backend
- * Supabase estiver pronto, `SupabaseRepository` implementa exatamente
- * este mesmo contrato — nenhum componente ou hook precisa mudar, só a
- * variável de ambiente NEXT_PUBLIC_DATA_SOURCE (ver lib/repositories/index.ts).
+ * Hoje so existe MockRepository, que vive em memoria. Quando o backend
+ * Supabase estiver pronto, SupabaseRepository implementa exatamente
+ * este mesmo contrato — nenhum componente ou hook precisa mudar, so a
+ * variavel de ambiente NEXT_PUBLIC_DATA_SOURCE (ver lib/repositories/index.ts).
  *
- * Todo método é assíncrono de propósito: o mock já se comporta como se
- * fosse uma chamada de rede, então a troca para Supabase não muda o
+ * Todo metodo e assincino de proposito: o mock ja se comporta como se
+ * fosse uma chamada de rede, entao a troca para Supabase nao muda o
  * formato dos hooks (loading/error/data continuam funcionando igual).
  */
 export interface FinanceRepository {
-  // Transações
+  // Perfil
+  getProfile(): Promise<Profile>;
+  updateProfile(input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>): Promise<Profile>;
+
+  // Transacoes
   listTransactions(): Promise<Transaction[]>;
   addTransaction(input: NewTransaction): Promise<Transaction>;
   updateTransaction(input: UpdateTransaction): Promise<Transaction>;
@@ -36,7 +43,7 @@ export interface FinanceRepository {
   updateGoal(input: UpdateGoal): Promise<Goal>;
   deleteGoal(id: string): Promise<void>;
 
-  // Orçamento
+  // Orcamento
   listBudgetLimits(mesReferencia: string): Promise<BudgetLimit[]>;
   upsertBudgetLimit(input: NewBudgetLimit): Promise<BudgetLimit>;
   deleteBudgetLimit(id: string): Promise<void>;
@@ -45,4 +52,10 @@ export interface FinanceRepository {
   listCategories(): Promise<Category[]>;
   addCategory(nome: string): Promise<Category>;
   deleteCategory(id: string): Promise<void>;
+
+  // Compartilhamento
+  addShare(input: NewShare): Promise<Share>;
+  listShares(): Promise<Share[]>;
+  deleteShare(id: string): Promise<void>;
+  getShare(id: string): Promise<Share | null>;
 }
