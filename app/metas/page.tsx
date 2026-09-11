@@ -85,24 +85,20 @@ function GoalEditableCard({
   const confirmar = async () => {
     const n = Number(valor);
     if (!n || n <= 0) return;
+    const currentModo = modo;
     setSaving(true);
     try {
-      const novoValor = modo === "adicionar" ? goal.valor_guardado + n : Math.max(0, goal.valor_guardado - n);
-      // Atualiza o progresso da meta e, ao mesmo tempo, registra uma
-      // movimentação real — o dinheiro efetivamente sai (ou volta) do
-      // disponível, em vez de só mudar um número isolado.
-      await Promise.all([
-        onUpdateGoal({ id: goal.id, valor_guardado: novoValor }),
-        onAddTransaction({
-          tipo: modo === "adicionar" ? "gasto" : "entrada",
-          valor: n,
-          descricao: modo === "adicionar" ? `Guardado para: ${goal.nome}` : `Resgatado de: ${goal.nome}`,
-          categoria: "Metas",
-          data: todayISO(),
-          metodo: null,
-          observacao: null,
-        }),
-      ]);
+      await onAddTransaction({
+        tipo: currentModo === "adicionar" ? "gasto" : "entrada",
+        valor: n,
+        descricao: currentModo === "adicionar" ? `Guardado para: ${goal.nome}` : `Resgatado de: ${goal.nome}`,
+        categoria: "Metas",
+        data: todayISO(),
+        metodo: null,
+        observacao: null,
+      });
+      const novoValor = currentModo === "adicionar" ? goal.valor_guardado + n : Math.max(0, goal.valor_guardado - n);
+      await onUpdateGoal({ id: goal.id, valor_guardado: novoValor });
       setValor("");
       setEditingValor(false);
     } finally {
