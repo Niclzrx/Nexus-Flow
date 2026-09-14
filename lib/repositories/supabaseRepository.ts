@@ -45,11 +45,12 @@ export class SupabaseRepository implements FinanceRepository {
     return data;
   }
 
-  async listTransactions(): Promise<Transaction[]> {
+  async listTransactions(offset = 0, limit = 50): Promise<Transaction[]> {
     const { data, error } = await this.supabase
       .from("transactions")
       .select("*")
-      .order("data", { ascending: false });
+      .order("data", { ascending: false })
+      .range(offset, offset + limit - 1);
     if (error) throw error;
     return data;
   }

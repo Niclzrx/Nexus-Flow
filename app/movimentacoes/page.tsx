@@ -13,7 +13,7 @@ import { fmtDateLong } from "@/lib/format";
 import type { Transaction, TransactionType } from "@/types";
 
 export default function MovimentacoesPage() {
-  const { transactions, loading, addTransaction, editTransaction, removeTransaction } = useTransactions();
+  const { transactions, allTransactions, loading, hasMore, loadMore, addTransaction, editTransaction, removeTransaction } = useTransactions();
   const { categories } = useCategories();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -21,7 +21,7 @@ export default function MovimentacoesPage() {
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
   const [busca, setBusca] = useState("");
 
-  const filtered = transactions.filter((t) => {
+  const filtered = allTransactions.filter((t) => {
     if (filter !== "todas" && t.tipo !== filter) return false;
     if (categoriaFiltro !== "todas" && t.categoria !== categoriaFiltro) return false;
     if (busca.trim() && !t.descricao.toLowerCase().includes(busca.trim().toLowerCase())) return false;
@@ -88,7 +88,7 @@ export default function MovimentacoesPage() {
       {loading ? (
         <ListSkeleton />
       ) : grouped.length === 0 ? (
-        <EmptyState text={transactions.length === 0 ? "Nenhuma movimentação por aqui." : "Nada encontrado com esses filtros."} />
+        <EmptyState text={allTransactions.length === 0 ? "Nenhuma movimentação por aqui." : "Nada encontrado com esses filtros."} />
       ) : (
         <div className="space-y-5">
           {grouped.map(([data, list]) => (
@@ -106,6 +106,12 @@ export default function MovimentacoesPage() {
               </div>
             </div>
           ))}
+
+          {hasMore && (
+            <Button variant="secondary" onClick={loadMore} className="w-full mt-4">
+              Carregar mais
+            </Button>
+          )}
         </div>
       )}
 

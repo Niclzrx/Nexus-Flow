@@ -45,9 +45,9 @@ export class MockRepository implements FinanceRepository {
     return { ...profile };
   }
 
-  async listTransactions(): Promise<Transaction[]> {
+  async listTransactions(offset = 0, limit = 50): Promise<Transaction[]> {
     await delay();
-    return [...transactions].sort((a, b) => (a.data < b.data ? 1 : -1));
+    return [...transactions].sort((a, b) => (a.data < b.data ? 1 : -1)).slice(offset, offset + limit);
   }
 
   async addTransaction(input: NewTransaction): Promise<Transaction> {

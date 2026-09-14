@@ -32,7 +32,7 @@ export interface FinanceRepository {
   updateProfile(input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>): Promise<Profile>;
 
   // Transacoes
-  listTransactions(): Promise<Transaction[]>;
+  listTransactions(offset?: number, limit?: number): Promise<Transaction[]>;
   addTransaction(input: NewTransaction): Promise<Transaction>;
   updateTransaction(input: UpdateTransaction): Promise<Transaction>;
   deleteTransaction(id: string): Promise<void>;

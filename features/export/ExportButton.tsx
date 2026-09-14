@@ -16,7 +16,7 @@ import type { Transaction } from "@/types";
  * sem isso, exporta tudo.
  */
 export function ExportButton({ transactionsOverride }: { transactionsOverride?: Transaction[] }) {
-  const { transactions } = useTransactions();
+  const { allTransactions } = useTransactions();
   const { goals } = useGoals();
   const { budgetLimits } = useBudget();
   const { profile } = useFinance();
@@ -26,7 +26,7 @@ export function ExportButton({ transactionsOverride }: { transactionsOverride?: 
     setExporting(true);
     try {
       await exportFinanceData({
-        transactions: transactionsOverride ?? transactions,
+        transactions: transactionsOverride ?? allTransactions,
         goals,
         budgetLimits,
         profile,
