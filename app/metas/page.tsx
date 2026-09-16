@@ -83,9 +83,10 @@ function GoalEditableCard({
   const falta = Math.max(0, goal.valor_meta - goal.valor_guardado);
 
   const confirmar = async () => {
-    const n = Number(valor);
-    if (!n || n <= 0) return;
+    const raw = Number(valor);
+    if (!raw || raw <= 0) return;
     const currentModo = modo;
+    const n = currentModo === "remover" ? Math.min(raw, goal.valor_guardado) : raw;
     setSaving(true);
     try {
       await onAddTransaction({
