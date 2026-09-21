@@ -8,17 +8,32 @@ Note.
 
 ```bash
 npm install
-cp .env.local.example .env.local
+cp .env.local.example .env.local   # e preencha (ver abaixo)
 npm run dev
 ```
 
-Abre em `http://localhost:3000`. Por padrão o app roda inteiro com dados
-mockados em memória — não precisa de nenhuma credencial para começar.
+Abre em `http://localhost:3000`.
+
+Por padrão (`NEXT_PUBLIC_DATA_SOURCE=mock` ou sem `.env.local`), o app roda
+com dados mockados em memória — bom para desenvolver UI sem backend. Com
+`NEXT_PUBLIC_DATA_SOURCE=supabase` + credenciais, usa o Supabase.
+
+> `NEXT_PUBLIC_*` é embutido no build: depois de criar ou trocar o
+> `.env.local`, **reinicie o `npm run dev`**.
+
+## Variáveis de ambiente
+
+| Var | Onde | Observação |
+| --- | --- | --- |
+| `NEXT_PUBLIC_DATA_SOURCE` | `mock` ou `supabase` | Chaveia o repositório |
+| `NEXT_PUBLIC_SUPABASE_URL` | Dashboard → Project Settings → API | Pública (vai no bundle) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Idem (formato `sb_publishable_…`) | Pública; o cerco é o RLS |
+| `SUPABASE_SERVICE_ROLE_KEY` | Idem (formato `sb_secret_…`) | **Secreta**: só servidor, nunca com prefixo `NEXT_PUBLIC_`, nunca no git (`.env.local` está no `.gitignore`) |
 
 ## Arquitetura de dados
 
-A ideia central deste projeto é que **nenhum componente ou hook de UI
-fala diretamente com o banco**. Tudo passa por uma interface única:
+Nenhum componente ou hook de UI fala diretamente com o banco. Tudo passa
+por uma interface única:
 
 ```
 components/, features/, app/*/page.tsx
@@ -30,69 +45,79 @@ components/, features/, app/*/page.tsx
   lib/providers/FinanceProvider.tsx   (contexto, carrega tudo uma vez)
         │
         ▼
-  lib/repositories/index.ts           (escolhe a implementação)
+  lib/repositories/index.ts           (escolhe pela env, loga no dev)
         │
-        ├── lib/repositories/mockRepository.ts      ← usado hoje
-        └── lib/repositories/supabaseRepository.ts  ← pronto, mas inativo
+        ├── lib/repositories/mockRepository.ts      ← mock em memória
+        └── lib/repositories/supabaseRepository.ts  ← Supabase (RLS)
 ```
 
-Ambas implementações cumprem a mesma interface (`lib/repositories/types.ts`
-— `FinanceRepository`). Trocar de uma para outra é uma linha de
-configuração, não uma reescrita.
+Ambas cumprem `lib/repositories/types.ts` (`FinanceRepository`).
 
-## Ativando o Supabase
+## Banco (Supabase)
 
-Quando o backend estiver pronto:
+Migrations em `supabase/migrations/`, aplicar em ordem no SQL Editor
+(não há CLI linkado neste repo):
 
-1. Cria um projeto em [supabase.com](https://supabase.com).
-2. Aplica a migration: `supabase/migrations/0001_init.sql` cria as
-   tabelas (`transactions`, `goals`, `budget_limits`, `categories`,
-   `profiles`) já com Row Level Security configurado por usuário
-   (`auth.uid() = user_id`), e um trigger que cria automaticamente um
-   `profile` para cada novo usuário cadastrado.
-   ```bash
-   supabase link --project-ref <seu-project-ref>
-   supabase db push
-   ```
-3. Preenche `.env.local` com as credenciais do projeto (Project Settings
-   → API):
-   ```
-   NEXT_PUBLIC_DATA_SOURCE=supabase
-   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxx
-   ```
-4. Reinicia o servidor. `middleware.ts` passa a renovar a sessão em cada
-   navegação, e `SupabaseRepository` (já implementado em
-   `lib/repositories/supabaseRepository.ts`) assume no lugar do mock.
-5. Falta só a tela de login/cadastro — o schema e as policies já esperam
-   um `auth.uid()` válido em cada request. `@supabase/ssr` já está
-   instalado; um formulário simples de email+senha usando
-   `supabase.auth.signInWithPassword` / `signUp` é o que falta plugar.
+- `0001_init.sql` — tabelas (`transactions`, `goals`, `budget_limits`,
+  `categories`, `profiles`) com RLS por usuário (`auth.uid() = user_id`) e
+  trigger que cria o `profile` no cadastro.
+- `0002_add_saldo_inicial_and_shares.sql` — `saldo_inicial` + tabela
+  `shares` e função `get_share_data()`.
+- `0003_security_shares_and_userid.sql` — fecha leitura pública de
+  `shares` (só via `get_share_data`, que respeita as flags e retorna
+  colunas mínimas), trigger `set_own_user_id` nos inserts das 5 tabelas
+  (o app nunca envia `user_id`) e `handle_new_user` tolerante a metadata
+  inválida.
 
-Nenhum dado mockado precisa ser migrado manualmente: os seeds em
-`lib/mock-data.ts` servem só de referência para popular categorias
-padrão, se quiser replicá-las como INSERT iniciais por usuário.
+Modelo de segurança: anon key é pública por desenho — a proteção é o RLS
++ trigger + `GRANT EXECUTE` restrito na função de share. Service key
+bypassa o RLS: uso futuro só em jobs/admin no servidor.
+
+## Auth
+
+Email + senha (`app/login`, `app/cadastro`, `middleware.ts` renova a
+sessão e protege rotas; `/`, `/login`, `/cadastro` e `/compartilhar/*` são
+públicas — `/` mostra a landing para deslogados e o dashboard para
+logados; `AppShell` só monta provider/sidebar com sessão). Detalhes que pegam:
+
+- Com **"Confirm email" ligado** (padrão do Supabase), o cadastro **não**
+  cria sessão: o app mostra "verifique seu email" e o login só funciona
+  após o clique no link. Para pular a confirmação em dev, desligue em
+  Authentication → Providers → Email.
+- Erros comuns são traduzidos em `lib/auth-errors.ts` (rate limit,
+  email não confirmado, credenciais inválidas).
+- Env de teste excedeu rate limit de signup? Aguarde alguns minutos
+  (limite do plano free).
+
+## Deploy (Render)
+
+Sem `render.yaml`/`Dockerfile` — runtime Node nativo:
+
+- Build Command: `npm install && npm run build` · Start: `npm start`.
+- Cadastre as 4 vars acima em Environment; `SUPABASE_SERVICE_ROLE_KEY`
+  (e qualquer var marcada como sensível) como **Secret**, não env comum.
+- `NEXT_PUBLIC_*` exige **rebuild** (Manual Deploy) após qualquer troca.
 
 ## Estrutura de pastas
 
 ```
 app/            rotas (App Router) — uma pasta por página
-components/     UI genérica (ui/) e casco do app (layout/)
-features/       componentes específicos de domínio (dashboard, transactions, goals, budget, reports)
+components/     UI genérica (ui/), auth (auth/) e casco (layout/)
+features/       componentes de domínio (dashboard, transactions, goals, budget, reports)
 hooks/          fatias finas de useFinance() por domínio
 lib/
   providers/    FinanceProvider (contexto global de dados)
   repositories/ a interface + as duas implementações (mock/Supabase)
-  supabase/     clients de browser e servidor
+  supabase/     clients de browser e servidor (com fail-fast de env)
+  auth-errors.ts mensagens PT para erros do Auth
   format.ts     helpers de formatação (moeda, data)
   mock-data.ts  seeds usados pelo mockRepository
 supabase/
-  migrations/   schema SQL com RLS
+  migrations/   schema SQL com RLS (0001 → 0003)
 types/          tipos de domínio, espelhando as tabelas do banco
 ```
 
 ## Stack
 
 Next.js 14, React 18, TypeScript, Tailwind CSS, Lucide Icons, Recharts,
-`@supabase/ssr` + `@supabase/supabase-js` (preparado, não ativo por
-padrão).
+`@supabase/ssr` + `@supabase/supabase-js`.

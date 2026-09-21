@@ -6,7 +6,7 @@ import { type NextRequest, NextResponse } from "next/server";
  *
  * Quando NEXT_PUBLIC_DATA_SOURCE=supabase:
  * - Renova o token de sessao a cada navegacao
- * - Redireciona usuarios deslogados para /login
+ * - "/" e publica (landing com botoes de login); demais rotas exigem login
  * - Redireciona usuarios logados de /login e /cadastro para /
  *
  * Quando NEXT_PUBLIC_DATA_SOURCE=mock (ou nao definido):
@@ -48,12 +48,14 @@ export async function middleware(request: NextRequest) {
 
   // Rotas publicas que nao precisam de autenticacao
   const publicRoutes = ["/login", "/cadastro", "/compartilhar"];
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicRoute =
+    pathname === "/" || publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Se nao esta autenticado e nao esta em rota publica, redireciona para login
+  // Se nao esta autenticado e nao esta em rota publica, vai para a landing
+  // (que tem os botoes de login/cadastro)
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

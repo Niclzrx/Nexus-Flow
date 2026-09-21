@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { friendlyAuthError } from "@/lib/auth-errors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function LoginPage() {
       email: data.email,
       password: data.password,
     });
-    if (authError) throw authError;
+    if (authError) throw new Error(friendlyAuthError(authError.message));
     router.push("/");
     router.refresh();
   };

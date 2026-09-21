@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useGoals } from "@/hooks/useGoals";
 import { useFinance } from "@/lib/providers/FinanceProvider";
+import { useSession } from "@/hooks/useSession";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { StatCard } from "@/features/dashboard/StatCard";
 import { FlowView } from "@/features/dashboard/FlowView";
 import { GoalCard } from "@/features/goals/GoalCard";
@@ -17,7 +19,14 @@ import type { Transaction } from "@/types";
 
 const CATEGORIA_METAS = "Metas";
 
-export default function OverviewPage() {
+export default function RootPage() {
+  const session = useSession();
+  if (session === "loading") return <PageSkeleton />;
+  if (session === "out") return <LandingPage />;
+  return <OverviewPage />;
+}
+
+function OverviewPage() {
   const { transactions, loading, editTransaction, removeTransaction } = useTransactions();
   const { goals } = useGoals();
   const { profile } = useFinance();

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { FinanceProvider } from "@/lib/providers/FinanceProvider";
 import { useFinance } from "@/lib/providers/FinanceProvider";
+import { useSession } from "@/hooks/useSession";
 import { useTheme } from "@/hooks/useTheme";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
@@ -56,6 +57,17 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const session = useSession();
+  // Deslogado: renderiza a pagina pura (landing/login/cadastro/share)
+  // sem provider de dados e sem sidebar — evita queries que falhariam no RLS.
+  if (session === "out") return <>{children}</>;
+  if (session === "loading") {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-bg">
+        <span className="font-display text-lg font-bold text-text animate-pulse">Nexus Flow</span>
+      </div>
+    );
+  }
   return (
     <FinanceProvider>
       <Shell>{children}</Shell>
