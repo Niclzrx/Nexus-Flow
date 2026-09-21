@@ -35,10 +35,41 @@ export const newTransactionSchema = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
   metodo: z.enum(paymentMethods).nullable().optional(),
   observacao: observacaoSchema,
+  attachment_url: z.string().url("URL inválida").max(500).nullable().optional(),
+  is_recurring: z.boolean().optional().default(false),
+  recurrence_interval: z.enum(["weekly", "monthly", "yearly"]).nullable().optional(),
+  recurrence_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD").nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.is_recurring && !data.recurrence_interval) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_interval"], message: "Intervalo obrigatório para recorrente" });
+  }
+  if (!data.is_recurring && data.recurrence_interval) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_interval"], message: "Só defina intervalo se for recorrente" });
+  }
 });
 
-export const updateTransactionSchema = newTransactionSchema.partial().extend({
+export const updateTransactionSchema = z.object({
   id: z.string().uuid("ID inválido"),
+  tipo: z.enum(["entrada", "gasto"]).optional(),
+  valor: z.number().positive("Valor deve ser > 0").max(1_000_000_000, "Valor muito alto").optional(),
+  descricao: descricaoSchema.optional(),
+  categoria: categoriaSchema.optional(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD").optional(),
+  metodo: z.enum(paymentMethods).nullable().optional(),
+  observacao: observacaoSchema.optional(),
+  attachment_url: z.string().url("URL inválida").max(500).nullable().optional(),
+  is_recurring: z.boolean().optional(),
+  recurrence_interval: z.enum(["weekly", "monthly", "yearly"]).nullable().optional(),
+  recurrence_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD").nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.is_recurring === true && !data.recurrence_interval) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_interval"], message: "Intervalo obrigatório para recorrente" });
+  }
+  if (data.is_recurring === false && data.recurrence_interval) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_interval"], message: "Só defina intervalo se for recorrente" });
+  }
 });
 
 export const newGoalSchema = z.object({

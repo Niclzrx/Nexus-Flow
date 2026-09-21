@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCategories } from "@/hooks/useCategories";
 import { todayISO } from "@/lib/format";
+import { createClient } from "@/lib/supabase/client";
 import type { NewTransaction, PaymentMethod, Transaction, TransactionType } from "@/types";
 
 const PAYMENT_METHODS: PaymentMethod[] = ["Pix", "Cartão de débito", "Cartão de crédito", "Dinheiro", "Boleto"];
@@ -26,6 +27,12 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
   const [observacao, setObservacao] = useState(editing?.observacao ?? "");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isRecurring, setIsRecurring] = useState(editing?.is_recurring ?? false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState<"weekly" | "monthly" | "yearly">(
+    (editing?.recurrence_interval as "weekly" | "monthly" | "yearly") ?? "monthly"
+  );
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(editing?.attachment_url ?? null);
+  const [uploading, setUploading] = useState(false);
 
   const canSave = Number(valor) > 0 && descricao.trim().length > 0 && categoria;
 
@@ -34,7 +41,20 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
     setErrorMsg(null);
     setSaving(true);
     try {
-      await onSubmit({ tipo, valor: Number(valor), descricao, categoria, data, metodo, observacao: observacao || null });
+      await onSubmit({
+        tipo,
+        valor: Number(valor),
+        descricao,
+        categoria,
+        data,
+        metodo,
+        observacao: observacao || null,
+        attachment_url: attachmentUrl,
+        is_recurring: isRecurring,
+        recurrence_interval: isRecurring ? recurrenceInterval : null,
+        recurrence_end_date: null,
+        parent_id: null,
+      });
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao salvar";
@@ -42,6 +62,32 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
       setErrorMsg(msg.slice(0, 200));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("Arquivo muito grande (máx 5 MB)");
+      return;
+    }
+    setUploading(true);
+    setErrorMsg(null);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Precisa estar logado para enviar arquivo");
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("receipts").upload(path, file, { contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+      setAttachmentUrl(data.publicUrl);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Falha no upload");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -122,6 +168,48 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
             className="w-full rounded-md px-3 py-2 text-sm outline-none resize-none bg-surface-elevated border border-border text-text"
           />
         </Field>
+
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+            className="rounded border-border text-signal focus:ring-signal/30"
+          />
+          <span className="text-sm text-text">Repetir mensalmente</span>
+          <span className="text-[11px] text-text-faint">(gera próxima ocorrência automaticamente)</span>
+        </label>
+        {isRecurring && (
+          <div className="mb-4">
+            <label className="block text-xs mb-1 text-text-faint">Intervalo</label>
+            <select
+              value={recurrenceInterval}
+              onChange={(e) => setRecurrenceInterval(e.target.value as "weekly" | "monthly" | "yearly")}
+              className="w-full rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text"
+            >
+              <option value="weekly">Semanal</option>
+              <option value="monthly">Mensal</option>
+              <option value="yearly">Anual</option>
+            </select>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-xs mb-1 text-text-faint">Comprovante (opcional)</label>
+          <div className="flex items-center gap-2">
+            <label className="flex-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm border border-border bg-surface-elevated text-text-muted cursor-pointer hover:border-border-strong">
+              <Paperclip className="h-4 w-4" />
+              <span>{uploading ? "Enviando..." : attachmentUrl ? "Trocar arquivo" : "Escolher arquivo (até 5 MB)"}</span>
+              <input type="file" accept="image/*,.pdf" onChange={handleFile} className="hidden" disabled={uploading} />
+            </label>
+            {attachmentUrl && (
+              <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-signal hover:underline">
+                ver
+              </a>
+            )}
+          </div>
+          {attachmentUrl && <p className="text-[11px] text-success mt-1 truncate">Anexado</p>}
+        </div>
 
         {errorMsg && (
           <p className="text-xs text-error mb-3 bg-error/10 border border-error/20 rounded-md px-3 py-2">{errorMsg}</p>

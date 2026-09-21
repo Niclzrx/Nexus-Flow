@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { repository } from "@/lib/repositories";
-import { currentMonthRef } from "@/lib/format";
+import { currentMonthRef, todayISO } from "@/lib/format";
+import { missingOccurrences } from "@/lib/recurrence";
 import type {
   BudgetLimit, Category, Goal, NewBudgetLimit, NewGoal, NewTransaction,
   NewShare, Profile, Share, Transaction, UpdateGoal, UpdateTransaction,
@@ -69,6 +70,34 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         setBudgetLimits(b);
         setCategories(c);
         setShares(s);
+        // gera ocorrências faltantes de transações recorrentes (até hoje)
+        const today = todayISO();
+        const parents = t.filter((tx) => tx.is_recurring && tx.parent_id === null);
+        for (const parent of parents) {
+          const dates = missingOccurrences(parent, t, today);
+          for (const d of dates) {
+            try {
+              const created = await repository.addTransaction({
+                tipo: parent.tipo,
+                valor: parent.valor,
+                descricao: parent.descricao,
+                categoria: parent.categoria,
+                data: d,
+                metodo: parent.metodo,
+                observacao: parent.observacao,
+                is_recurring: false,
+                recurrence_interval: null,
+                recurrence_end_date: null,
+                parent_id: parent.id,
+              });
+              if (!cancelled) setTransactions((prev) => [created, ...prev]);
+              // atualiza array local para próximas iterações não duplicarem
+              t.push({ ...parent, id: created.id, data: d, parent_id: parent.id, is_recurring: false } as Transaction);
+            } catch {
+              // ignora duplicata / erro de validação
+            }
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e as Error);
       } finally {

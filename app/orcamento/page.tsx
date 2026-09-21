@@ -19,12 +19,21 @@ export default function OrcamentoPage() {
   const { categories } = useCategories();
 
   const gastoPorCategoria = useMemo(() => {
+    const ref = currentMonthRef();
     const map: Record<string, number> = {};
-    transactions.filter((t) => t.tipo === "gasto").forEach((t) => {
-      map[t.categoria] = (map[t.categoria] ?? 0) + t.valor;
-    });
+    transactions
+      .filter((t) => t.tipo === "gasto" && t.data.startsWith(ref))
+      .forEach((t) => {
+        map[t.categoria] = (map[t.categoria] ?? 0) + t.valor;
+      });
     return map;
   }, [transactions]);
+
+  const estourados = budgetLimits.filter((b) => (gastoPorCategoria[b.categoria] ?? 0) >= b.limite);
+  const pertoLimite = budgetLimits.filter((b) => {
+    const pct = ((gastoPorCategoria[b.categoria] ?? 0) / b.limite) * 100;
+    return pct >= 85 && pct < 100;
+  });
 
   const categoriasSemOrcamento = categories.filter(
     (c) => !budgetLimits.some((b) => b.categoria === c.nome) && c.nome !== "Metas"
@@ -43,6 +52,21 @@ export default function OrcamentoPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
       <span className="font-display text-lg font-semibold text-text">Orçamento</span>
+
+      {(estourados.length > 0 || pertoLimite.length > 0) && (
+        <div className="mt-4 space-y-2">
+          {estourados.length > 0 && (
+            <div className="rounded-lg px-4 py-3 flex items-start gap-3 bg-error/10 border border-error/30 text-error">
+              <span className="text-sm font-medium">⚠️ {estourados.length} orçamento(s) estourado(s): {estourados.map((b) => b.categoria).join(", ")} — revise seus gastos.</span>
+            </div>
+          )}
+          {pertoLimite.length > 0 && (
+            <div className="rounded-lg px-4 py-3 flex items-start gap-3 bg-ember/10 border border-ember/30 text-ember">
+              <span className="text-sm font-medium">⏳ Perto do limite: {pertoLimite.map((b) => `${b.categoria} (${Math.round((gastoPorCategoria[b.categoria] / b.limite) * 100)}%)`).join(", ")}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-3 mt-5">
         {budgetLimits.map((b) => (

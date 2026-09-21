@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, FileText } from "lucide-react";
+import { Pencil, FileText, Paperclip } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { fmt, fmtDate } from "@/lib/format";
@@ -33,7 +33,11 @@ export function TransactionRow({ mov, onEdit, onDelete }: TransactionRowProps) {
           <CategoryIcon categoria={mov.categoria} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm truncate text-text">{mov.descricao}</div>
+          <div className="text-sm truncate text-text flex items-center gap-1.5">
+            {mov.descricao}
+            {mov.is_recurring && <span className="text-[10px] px-1.5 py-0.5 rounded bg-signal/15 text-signal border border-signal/20">↻</span>}
+            {mov.parent_id && <span className="text-[10px] text-text-faint">↳ recorrente</span>}
+          </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-xs text-text-faint">{mov.categoria}</span>
             {mov.metodo && <span className="text-xs text-text-faint">· {mov.metodo}</span>}
@@ -42,6 +46,11 @@ export function TransactionRow({ mov, onEdit, onDelete }: TransactionRowProps) {
                 <FileText className="h-3 w-3" />
                 <span className="truncate max-w-[160px]">{mov.observacao}</span>
               </span>
+            )}
+            {mov.attachment_url && (
+              <a href={mov.attachment_url} target="_blank" rel="noopener noreferrer" onClick={(e)=>e.stopPropagation()} className="flex items-center gap-1 text-xs text-signal hover:underline">
+                <Paperclip className="h-3 w-3" /> anexo
+              </a>
             )}
           </div>
         </div>

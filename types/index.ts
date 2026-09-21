@@ -34,6 +34,11 @@ export interface Transaction {
   data: string; // ISO date (YYYY-MM-DD)
   metodo: PaymentMethod | null;
   observacao: string | null;
+  attachment_url: string | null;
+  is_recurring: boolean;
+  recurrence_interval: "weekly" | "monthly" | "yearly" | null;
+  recurrence_end_date: string | null;
+  parent_id: string | null;
   created_at: string;
 }
 
@@ -73,7 +78,7 @@ export interface Share {
 }
 
 /** Payloads de criacao — sem campos gerados pelo banco (id, user_id, created_at). */
-export type NewTransaction = Omit<Transaction, "id" | "user_id" | "created_at">;
+export type NewTransaction = Omit<Transaction, "id" | "user_id" | "created_at" | "is_recurring" | "recurrence_interval" | "recurrence_end_date" | "parent_id" | "attachment_url"> & Partial<Pick<Transaction, "is_recurring" | "recurrence_interval" | "recurrence_end_date" | "parent_id" | "attachment_url">>;
 export type UpdateTransaction = Partial<NewTransaction> & { id: string };
 
 export type NewGoal = Omit<Goal, "id" | "user_id" | "created_at" | "valor_guardado"> & {

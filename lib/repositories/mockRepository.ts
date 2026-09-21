@@ -54,6 +54,11 @@ export class MockRepository implements FinanceRepository {
     await delay();
     const created: Transaction = {
       ...input,
+      attachment_url: input.attachment_url ?? null,
+      is_recurring: input.is_recurring ?? false,
+      recurrence_interval: input.recurrence_interval ?? null,
+      recurrence_end_date: input.recurrence_end_date ?? null,
+      parent_id: input.parent_id ?? null,
       id: newId("t"),
       user_id: MOCK_USER_ID,
       created_at: new Date().toISOString(),

@@ -20,13 +20,34 @@ export default function MovimentacoesPage() {
   const [filter, setFilter] = useState<"todas" | TransactionType>("todas");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [valorMin, setValorMin] = useState("");
+  const [valorMax, setValorMax] = useState("");
 
   const filtered = allTransactions.filter((t) => {
     if (filter !== "todas" && t.tipo !== filter) return false;
     if (categoriaFiltro !== "todas" && t.categoria !== categoriaFiltro) return false;
-    if (busca.trim() && !t.descricao.toLowerCase().includes(busca.trim().toLowerCase())) return false;
+    const b = busca.trim().toLowerCase();
+    if (b && !(`${t.descricao} ${t.observacao ?? ""} ${t.categoria}`.toLowerCase().includes(b))) return false;
+    if (dateFrom && t.data < dateFrom) return false;
+    if (dateTo && t.data > dateTo) return false;
+    const v = t.valor;
+    if (valorMin && v < Number(valorMin)) return false;
+    if (valorMax && v > Number(valorMax)) return false;
     return true;
   });
+
+  const hasActiveFilters = filter !== "todas" || categoriaFiltro !== "todas" || busca.trim() || dateFrom || dateTo || valorMin || valorMax;
+  const clearFilters = () => {
+    setFilter("todas");
+    setCategoriaFiltro("todas");
+    setBusca("");
+    setDateFrom("");
+    setDateTo("");
+    setValorMin("");
+    setValorMax("");
+  };
 
   const grouped = useMemo(() => {
     const map: Record<string, Transaction[]> = {};
@@ -49,13 +70,13 @@ export default function MovimentacoesPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <div className="relative flex-1">
           <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-faint" />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por descrição"
+            placeholder="Buscar por descrição, observação ou categoria"
             className="w-full rounded-md pl-8 pr-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text"
           />
         </div>
@@ -68,6 +89,19 @@ export default function MovimentacoesPage() {
           {categories.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
         </select>
       </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text" placeholder="De" />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text" placeholder="Até" />
+        <input type="number" min="0" step="0.01" value={valorMin} onChange={(e) => setValorMin(e.target.value)} placeholder="Valor mín" className="rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text" />
+        <input type="number" min="0" step="0.01" value={valorMax} onChange={(e) => setValorMax(e.target.value)} placeholder="Valor máx" className="rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text" />
+      </div>
+      {hasActiveFilters && (
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-text-faint">{filtered.length} de {allTransactions.length} movimentações</span>
+          <button onClick={clearFilters} className="text-xs text-signal hover:underline">Limpar filtros</button>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-4">
         {(["todas", "entrada", "gasto"] as const).map((f) => (
