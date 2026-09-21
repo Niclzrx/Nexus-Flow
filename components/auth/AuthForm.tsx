@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
+import { friendlyAuthError } from "@/lib/auth-errors";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -28,13 +29,15 @@ export function AuthForm({ mode, onSubmit, error }: AuthFormProps) {
         ...(mode === "signup" ? { nome, saldoInicial: Number(saldoInicial) || 0 } : {}),
       });
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Erro ao autenticar");
+      const raw = err instanceof Error ? err.message : "Erro ao autenticar";
+      console.warn("[auth] erro original:", raw);
+      setLocalError(raw);
     } finally {
       setLoading(false);
     }
   };
 
-  const displayError = localError || error;
+  const displayError = localError ? friendlyAuthError(localError) : error;
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-bg px-4">
@@ -115,6 +118,9 @@ export function AuthForm({ mode, onSubmit, error }: AuthFormProps) {
           {displayError && (
             <div className="rounded-[10px] bg-error/10 border border-error/30 px-3 py-2 text-sm text-error">
               {displayError}
+              {localError && localError !== displayError && (
+                <p className="text-[11px] opacity-70 mt-1 break-words">{localError}</p>
+              )}
             </div>
           )}
 
