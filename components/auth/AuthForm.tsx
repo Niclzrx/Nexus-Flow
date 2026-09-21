@@ -17,9 +17,20 @@ export function AuthForm({ mode, onSubmit, error }: AuthFormProps) {
   const [saldoInicial, setSaldoInicial] = useState("");
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  // bot protection: honeypot + tempo mínimo
+  const [honey, setHoney] = useState("");
+  const [mountedAt] = useState(() => Date.now());
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (honey.trim() !== "") {
+      setLocalError("Bot detectado.");
+      return;
+    }
+    if (Date.now() - mountedAt < 800) {
+      setLocalError("Aguarde um instante antes de enviar.");
+      return;
+    }
     setLocalError(null);
     setLoading(true);
     try {
@@ -50,6 +61,17 @@ export function AuthForm({ mode, onSubmit, error }: AuthFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* honeypot anti-bot */}
+          <input
+            type="text"
+            value={honey}
+            onChange={(e) => setHoney(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="hidden"
+            name="website"
+          />
           {mode === "signup" && (
             <>
               <div>

@@ -13,6 +13,16 @@ import { type NextRequest, NextResponse } from "next/server";
  * - Deixa a request passar direto (sem autenticacao)
  */
 export async function middleware(request: NextRequest) {
+  // Força HTTPS em produção
+  if (process.env.NODE_ENV === "production") {
+    const proto = request.headers.get("x-forwarded-proto");
+    if (proto === "http") {
+      const url = request.nextUrl.clone();
+      url.protocol = "https:";
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
   // Rate limit simples para rotas sensíveis (brute-force / enumeração)
   // Só atua quando em modo supabase; em mock não há risco.
   if (process.env.NEXT_PUBLIC_DATA_SOURCE === "supabase") {
@@ -57,7 +67,16 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const secureOpts = {
+              ...options,
+              httpOnly: options.httpOnly ?? true,
+              secure: process.env.NODE_ENV === "production" ? true : options.secure ?? false,
+              sameSite: options.sameSite ?? "lax",
+              path: options.path ?? "/",
+            };
+            response.cookies.set(name, value, secureOpts);
+          });
         },
       },
     }

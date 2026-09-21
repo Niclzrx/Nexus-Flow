@@ -24,9 +24,16 @@ export async function createClient() {
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              const secureOpts: CookieOptions = {
+                ...options,
+                httpOnly: options.httpOnly ?? true,
+                secure: process.env.NODE_ENV === "production" ? true : options.secure ?? false,
+                sameSite: (options.sameSite as CookieOptions["sameSite"]) ?? "lax",
+                path: options.path ?? "/",
+              };
+              cookieStore.set(name, value, secureOpts);
+            });
           } catch {
             // Chamado de um Server Component sem permissão de escrita de
             // cookies — ok ignorar se houver middleware renovando a sessão.
