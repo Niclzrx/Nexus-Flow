@@ -10,6 +10,9 @@ import type { FinanceRepository } from "./types";
  */
 function createRepository(): FinanceRepository {
   const source = process.env.NEXT_PUBLIC_DATA_SOURCE ?? "mock";
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[nexus-flow] data source: ${source}`);
+  }
   return source === "supabase" ? new SupabaseRepository() : new MockRepository();
 }
 
