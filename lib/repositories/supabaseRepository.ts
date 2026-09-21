@@ -1,4 +1,14 @@
 ﻿import { createClient } from "@/lib/supabase/client";
+import {
+  categoryNameSchema,
+  newBudgetLimitSchema,
+  newGoalSchema,
+  newShareSchema,
+  newTransactionSchema,
+  profileUpdateSchema,
+  updateGoalSchema,
+  updateTransactionSchema,
+} from "@/lib/validators";
 import type {
   BudgetLimit,
   Category,
@@ -36,9 +46,10 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async updateProfile(input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>): Promise<Profile> {
+    const parsed = profileUpdateSchema.parse(input);
     const { data, error } = await this.supabase
       .from("profiles")
-      .update(input)
+      .update(parsed)
       .select()
       .single();
     if (error) throw error;
@@ -56,9 +67,10 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async addTransaction(input: NewTransaction): Promise<Transaction> {
+    const parsed = newTransactionSchema.parse(input);
     const { data, error } = await this.supabase
       .from("transactions")
-      .insert(input)
+      .insert(parsed)
       .select()
       .single();
     if (error) throw error;
@@ -66,7 +78,8 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async updateTransaction(input: UpdateTransaction): Promise<Transaction> {
-    const { id, ...rest } = input;
+    const parsed = updateTransactionSchema.parse(input);
+    const { id, ...rest } = parsed;
     const { data, error } = await this.supabase
       .from("transactions")
       .update(rest)
@@ -92,9 +105,10 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async addGoal(input: NewGoal): Promise<Goal> {
+    const parsed = newGoalSchema.parse({ ...input, valor_guardado: input.valor_guardado ?? 0 });
     const { data, error } = await this.supabase
       .from("goals")
-      .insert({ ...input, valor_guardado: input.valor_guardado ?? 0 })
+      .insert(parsed)
       .select()
       .single();
     if (error) throw error;
@@ -102,7 +116,8 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async updateGoal(input: UpdateGoal): Promise<Goal> {
-    const { id, ...rest } = input;
+    const parsed = updateGoalSchema.parse(input);
+    const { id, ...rest } = parsed;
     const { data, error } = await this.supabase
       .from("goals")
       .update(rest)
@@ -128,20 +143,21 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async upsertBudgetLimit(input: NewBudgetLimit): Promise<BudgetLimit> {
+    const parsed = newBudgetLimitSchema.parse(input);
     // RLS ja escopa a busca ao usuario logado; o trigger set_own_user_id
     // preenche user_id no insert. (Upsert direto com onConflict em user_id
     // nao funciona porque user_id nao vai no payload.)
     const { data: existing, error: findError } = await this.supabase
       .from("budget_limits")
       .select("id")
-      .eq("categoria", input.categoria)
-      .eq("mes_referencia", input.mes_referencia)
+      .eq("categoria", parsed.categoria)
+      .eq("mes_referencia", parsed.mes_referencia)
       .maybeSingle();
     if (findError) throw findError;
     if (existing) {
       const { data, error } = await this.supabase
         .from("budget_limits")
-        .update({ limite: input.limite })
+        .update({ limite: parsed.limite })
         .eq("id", existing.id)
         .select()
         .single();
@@ -150,7 +166,7 @@ export class SupabaseRepository implements FinanceRepository {
     }
     const { data, error } = await this.supabase
       .from("budget_limits")
-      .insert(input)
+      .insert(parsed)
       .select()
       .single();
     if (error) throw error;
@@ -172,9 +188,10 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async addCategory(nome: string): Promise<Category> {
+    const parsed = categoryNameSchema.parse(nome);
     const { data, error } = await this.supabase
       .from("categories")
-      .insert({ nome })
+      .insert({ nome: parsed })
       .select()
       .single();
     if (error) throw error;
@@ -187,9 +204,10 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async addShare(input: NewShare): Promise<Share> {
+    const parsed = newShareSchema.parse(input);
     const { data, error } = await this.supabase
       .from("shares")
-      .insert(input)
+      .insert(parsed)
       .select()
       .single();
     if (error) throw error;

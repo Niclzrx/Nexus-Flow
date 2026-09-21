@@ -18,16 +18,22 @@ export function ShareForm({ onClose }: ShareFormProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [expiresIn, setExpiresIn] = useState<string>("never"); // never | 1h | 24h | 7d
 
   const handleGenerate = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const expires_at =
+        expiresIn === "never"
+          ? null
+          : new Date(Date.now() + (expiresIn === "1h" ? 1 : expiresIn === "24h" ? 24 : 168) * 60 * 60 * 1000).toISOString();
       const share = await addShare({
         titulo,
         show_resumo: showResumo,
         show_grafico: showGrafico,
         show_gastos_categoria: showGastosCategoria,
+        expires_at,
       });
       const url = `${window.location.origin}/compartilhar/${share.id}`;
       setShareUrl(url);
@@ -100,6 +106,24 @@ export function ShareForm({ onClose }: ShareFormProps) {
                 />
                 <span className="text-sm text-text">Gastos por categoria</span>
               </label>
+            </div>
+
+            <div>
+              <label htmlFor="expiresIn" className="block text-xs font-medium text-text-muted mb-1.5">
+                Expiração
+              </label>
+              <select
+                id="expiresIn"
+                value={expiresIn}
+                onChange={(e) => setExpiresIn(e.target.value)}
+                className="w-full rounded-[10px] border border-border bg-surface-elevated px-3 py-2.5 text-sm text-text focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal/30"
+              >
+                <option value="never">Nunca expira</option>
+                <option value="1h">Expira em 1 hora</option>
+                <option value="24h">Expira em 24 horas</option>
+                <option value="7d">Expira em 7 dias</option>
+              </select>
+              <p className="text-[11px] text-text-faint mt-1">Após expirar, o link mostra “não encontrado”.</p>
             </div>
 
             <div className="flex gap-2 pt-2">

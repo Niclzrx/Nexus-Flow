@@ -162,6 +162,7 @@ export class MockRepository implements FinanceRepository {
     await delay();
     const created: Share = {
       ...input,
+      expires_at: input.expires_at ?? null,
       id: newId("s"),
       user_id: MOCK_USER_ID,
       created_at: new Date().toISOString(),

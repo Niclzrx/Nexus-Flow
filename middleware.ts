@@ -13,6 +13,27 @@ import { type NextRequest, NextResponse } from "next/server";
  * - Deixa a request passar direto (sem autenticacao)
  */
 export async function middleware(request: NextRequest) {
+  // Rate limit simples para rotas sensíveis (brute-force / enumeração)
+  // Só atua quando em modo supabase; em mock não há risco.
+  if (process.env.NEXT_PUBLIC_DATA_SOURCE === "supabase") {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+    const pathname = request.nextUrl.pathname;
+    const isSensitive = pathname.startsWith("/login") || pathname.startsWith("/cadastro") || pathname.startsWith("/compartilhar");
+    if (isSensitive) {
+      const now = Date.now();
+      // janela de 60s, max 20 requisições por IP por rota
+      const key = `${ip}:${pathname.split("/")[1]}`;
+      const entry = (globalThis as unknown as { __nfRateLimit?: Map<string, number[]> }).__nfRateLimit ?? new Map<string, number[]>();
+      (globalThis as unknown as { __nfRateLimit?: Map<string, number[]> }).__nfRateLimit = entry;
+      const hits = (entry.get(key) ?? []).filter((t) => now - t < 60_000);
+      hits.push(now);
+      entry.set(key, hits);
+      if (hits.length > 20) {
+        return new NextResponse("Muitas requisições. Tente novamente em instantes.", { status: 429, headers: { "Retry-After": "60" } });
+      }
+    }
+  }
+
   if (process.env.NEXT_PUBLIC_DATA_SOURCE !== "supabase") {
     return NextResponse.next();
   }

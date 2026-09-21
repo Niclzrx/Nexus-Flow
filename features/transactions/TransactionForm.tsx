@@ -25,15 +25,21 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
   const [metodo, setMetodo] = useState<PaymentMethod>((editing?.metodo as PaymentMethod) ?? "Pix");
   const [observacao, setObservacao] = useState(editing?.observacao ?? "");
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const canSave = Number(valor) > 0 && descricao.trim().length > 0 && categoria;
 
   const handleSubmit = async () => {
     if (!canSave) return;
+    setErrorMsg(null);
     setSaving(true);
     try {
       await onSubmit({ tipo, valor: Number(valor), descricao, categoria, data, metodo, observacao: observacao || null });
       onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao salvar";
+      // Zod error tem issues; mostra primeira mensagem amigável
+      setErrorMsg(msg.slice(0, 200));
     } finally {
       setSaving(false);
     }
@@ -79,7 +85,7 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
 
         <Field label="Descrição">
           <input
-            value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Almoço"
+            value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Almoço" maxLength={120}
             className="w-full rounded-md px-3 py-2 text-sm outline-none bg-surface-elevated border border-border text-text"
           />
         </Field>
@@ -112,10 +118,14 @@ export function TransactionForm({ editing, onClose, onSubmit }: TransactionFormP
 
         <Field label="Observação (opcional)" last>
           <textarea
-            value={observacao ?? ""} onChange={(e) => setObservacao(e.target.value)} rows={2}
+            value={observacao ?? ""} onChange={(e) => setObservacao(e.target.value)} rows={2} maxLength={500}
             className="w-full rounded-md px-3 py-2 text-sm outline-none resize-none bg-surface-elevated border border-border text-text"
           />
         </Field>
+
+        {errorMsg && (
+          <p className="text-xs text-error mb-3 bg-error/10 border border-error/20 rounded-md px-3 py-2">{errorMsg}</p>
+        )}
 
         <Button variant="primary" className="w-full justify-center" disabled={!canSave || saving} onClick={handleSubmit}>
           {editing ? "Salvar alterações" : "Adicionar movimentação"}

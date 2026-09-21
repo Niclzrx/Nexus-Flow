@@ -68,6 +68,7 @@ export interface Share {
   show_resumo: boolean;
   show_grafico: boolean;
   show_gastos_categoria: boolean;
+  expires_at: string | null;
   created_at: string;
 }
 
