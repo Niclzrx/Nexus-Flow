@@ -128,9 +128,29 @@ export class SupabaseRepository implements FinanceRepository {
   }
 
   async upsertBudgetLimit(input: NewBudgetLimit): Promise<BudgetLimit> {
+    // RLS ja escopa a busca ao usuario logado; o trigger set_own_user_id
+    // preenche user_id no insert. (Upsert direto com onConflict em user_id
+    // nao funciona porque user_id nao vai no payload.)
+    const { data: existing, error: findError } = await this.supabase
+      .from("budget_limits")
+      .select("id")
+      .eq("categoria", input.categoria)
+      .eq("mes_referencia", input.mes_referencia)
+      .maybeSingle();
+    if (findError) throw findError;
+    if (existing) {
+      const { data, error } = await this.supabase
+        .from("budget_limits")
+        .update({ limite: input.limite })
+        .eq("id", existing.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
     const { data, error } = await this.supabase
       .from("budget_limits")
-      .upsert(input, { onConflict: "user_id,categoria,mes_referencia" })
+      .insert(input)
       .select()
       .single();
     if (error) throw error;
