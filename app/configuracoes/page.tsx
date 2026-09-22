@@ -1,13 +1,10 @@
 "use client";
-import { useState } from "react";
-import { Sun, Moon, Download, Trash2, Shield, Palette, Database, User, LogOut, EyeOff, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sun, Moon, Download, Trash2, Shield, Palette, Database, User, LogOut, EyeOff, Info, Heart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useFinance } from "@/lib/providers/FinanceProvider";
 import { createClient } from "@/lib/supabase/client";
 import { exportFinanceData } from "@/lib/export";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useGoals } from "@/hooks/useGoals";
-import { useBudget } from "@/hooks/useBudget";
 import { fmt } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 
@@ -17,9 +14,12 @@ export default function ConfiguracoesPage() {
   const [nome, setNome] = useState(profile?.nome ?? "");
   const [savingNome, setSavingNome] = useState(false);
   const [pass1, setPass1] = useState(""); const [pass2, setPass2] = useState("");
-  const [hideBalances, setHideBalances] = useState(() => typeof window !== "undefined" ? localStorage.getItem("nf-hide-balances")==="1" : false);
+  const [hideBalances, setHideBalances] = useState(false);
   const dataSource = process.env.NEXT_PUBLIC_DATA_SOURCE ?? "mock";
   const isCloud = dataSource === "supabase";
+
+  useEffect(() => { setHideBalances(localStorage.getItem("nf-hide-balances")==="1"); }, []);
+  useEffect(() => { setNome(profile?.nome ?? ""); }, [profile?.nome]);
 
   const saveNome = async () => {
     if (!nome.trim() || nome.trim()===profile?.nome) return;
@@ -93,6 +93,23 @@ export default function ConfiguracoesPage() {
           <div className="rounded-md bg-success/10 border border-success/20 px-3 py-2">
             <div className="text-xs font-medium text-success">Automação diária: ativa</div>
             <div className="text-xs text-text-faint">Suas parcelas recorrentes (mensais/semanais) são verificadas e criadas automaticamente todo dia.</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg p-4 bg-surface border border-border">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-text"><Heart className="h-4 w-4"/> Sobre</h2>
+        <p className="text-xs text-text-faint mb-3">Para que serve: saber o que está rodando por baixo.</p>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between rounded-md bg-surface-elevated border border-border px-3 py-2">
+            <span className="text-text-faint">Versão</span><span className="font-mono text-text">0.1.0</span>
+          </div>
+          <div className="flex items-center justify-between rounded-md bg-surface-elevated border border-border px-3 py-2">
+            <span className="text-text-faint">Fonte de dados</span><code className={`font-mono px-1.5 py-0.5 rounded text-xs ${isCloud ? "bg-success/10 text-success" : "bg-ember/10 text-ember"}`}>{dataSource}</code>
+          </div>
+          <div className="rounded-md bg-surface-elevated border border-border px-3 py-2">
+            <div className="text-text font-medium">Nexus Flow</div>
+            <div className="text-text-faint">Controle financeiro pessoal. Seus dados ficam isolados por usuário (RLS). Cron de recorrência roda diário via <code className="font-mono">generate_recurring_transactions()</code>.</div>
           </div>
         </div>
       </section>
