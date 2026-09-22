@@ -47,9 +47,12 @@ export class SupabaseRepository implements FinanceRepository {
 
   async updateProfile(input: Partial<Pick<Profile, "nome" | "tema" | "saldo_inicial">>): Promise<Profile> {
     const parsed = profileUpdateSchema.parse(input);
+    const { data: { user } } = await this.supabase.auth.getUser();
+    if (!user) throw new Error("Sessão expirada — faça login novamente");
     const { data, error } = await this.supabase
       .from("profiles")
       .update(parsed)
+      .eq("id", user.id)
       .select()
       .single();
     if (error) throw error;
